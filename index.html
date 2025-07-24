@@ -409,7 +409,7 @@
             userAvatar.textContent = user.first_name ? user.first_name[0] : 'P';
             
             // Set up API requests with initData
-            fetch('/api/user/' + user.id, {
+            fetch('https://coin-tap-game.onrender.com/api/user/' + user.id, {
                 headers: { 'X-Telegram-Init-Data': initData }
             })
             .then(res => res.json())
@@ -449,7 +449,7 @@
         function handleTap() {
             const initData = tg.initData;
             
-            fetch('/api/tap', {
+            fetch('https://coin-tap-game.onrender.com/api/tap', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -486,7 +486,7 @@
         dailyBtn.addEventListener('click', () => {
             const initData = tg.initData;
             
-            fetch('/api/daily-reward', {
+            fetch('https://coin-tap-game.onrender.com/api/daily-reward', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -510,7 +510,7 @@
         function buyUpgrade() {
             const initData = tg.initData;
             
-            fetch('/api/upgrade', {
+            fetch('https://coin-tap-game.onrender.com/api/upgrade', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -533,7 +533,7 @@
         
         // Load leaderboard
         function loadLeaderboard() {
-            fetch('/api/leaderboard')
+            fetch('https://coin-tap-game.onrender.com/api/leaderboard')
             .then(res => res.json())
             .then(data => {
                 leaderboardContainer.innerHTML = '';
@@ -558,7 +558,7 @@
             
             const initData = tg.initData;
             
-            fetch('/api/withdraw', {
+            fetch('https://coin-tap-game.onrender.com/api/withdraw', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
