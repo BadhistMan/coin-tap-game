@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coin Tap - Telegram Game</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --primary: #2a9df4;
@@ -369,6 +370,9 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
         
+        // API Configuration
+        const API_BASE_URL = "https://coin-tap-game.onrender.com";
+        
         // Global state
         let userData = {
             coins: 0,
@@ -401,18 +405,21 @@
         
         // Initialize user
         function initUser() {
-            const initData = tg.initData;
-            
             // Set Telegram user info
             const user = tg.initDataUnsafe.user || {};
             usernameDisplay.textContent = user.first_name || 'Player';
             userAvatar.textContent = user.first_name ? user.first_name[0] : 'P';
             
             // Set up API requests with initData
-            fetch('https://coin-tap-game.onrender.com/api/user/' + user.id, {
-                headers: { 'X-Telegram-Init-Data': initData }
+            fetch(`${API_BASE_URL}/api/user/${user.id}`, {
+                headers: { 
+                    'X-Telegram-Init-Data': tg.initData 
+                }
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch user');
+                return res.json();
+            })
             .then(data => {
                 userData = {
                     ...userData,
@@ -421,6 +428,10 @@
                     referrals: data.referrals || 0
                 };
                 updateUI();
+            })
+            .catch(error => {
+                console.error('User init error:', error);
+                alert('Failed to load user data. Please try again.');
             });
         }
         
@@ -431,10 +442,10 @@
             tapCountDisplay.textContent = userData.tap_count.toLocaleString();
             referralCountDisplay.textContent = userData.referrals.toLocaleString();
             powerValueDisplay.textContent = userData.tap_power;
-            upgradeCostDisplay.textContent = (BASE_UPGRADE_COST * (userData.tap_power + 1)).toLocaleString();
+            upgradeCostDisplay.textContent = (50 * (userData.tap_power + 1)).toLocaleString();
             
             // Update withdraw button state
-            withdrawBtn.disabled = userData.coins < MIN_WITHDRAW;
+            withdrawBtn.disabled = userData.coins < 50000;
             
             // Update referral info
             if (referralLink) {
@@ -447,16 +458,17 @@
         
         // Handle tap
         function handleTap() {
-            const initData = tg.initData;
-            
-            fetch('https://coin-tap-game.onrender.com/api/tap', {
+            fetch(`${API_BASE_URL}/api/tap`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'X-Telegram-Init-Data': initData
+                    'X-Telegram-Init-Data': tg.initData
                 }
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Tap failed');
+                return res.json();
+            })
             .then(data => {
                 if (data.error) {
                     alert(data.error);
@@ -471,7 +483,7 @@
                 const pop = document.createElement('div');
                 pop.className = 'coin-pop';
                 pop.textContent = `+${data.earned}`;
-                pop.style.left = `${Math.random() * 100}%`;
+                pop.style.left = `${Math.random() * 80 + 10}%`;
                 tapArea.appendChild(pop);
                 
                 setTimeout(() => {
@@ -479,21 +491,26 @@
                 }, 1000);
                 
                 updateUI();
+            })
+            .catch(error => {
+                console.error('Tap error:', error);
+                alert('Tap failed. Please try again.');
             });
         }
         
         // Claim daily reward
         dailyBtn.addEventListener('click', () => {
-            const initData = tg.initData;
-            
-            fetch('https://coin-tap-game.onrender.com/api/daily-reward', {
+            fetch(`${API_BASE_URL}/api/daily-reward`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'X-Telegram-Init-Data': initData
+                    'X-Telegram-Init-Data': tg.initData
                 }
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Daily reward failed');
+                return res.json();
+            })
             .then(data => {
                 if (data.error) {
                     alert(data.error);
@@ -503,21 +520,26 @@
                 userData.coins = data.coins;
                 updateUI();
                 alert(`Claimed ${data.reward} coins!`);
+            })
+            .catch(error => {
+                console.error('Daily reward error:', error);
+                alert('Failed to claim daily reward. Please try again.');
             });
         });
         
         // Buy upgrade
         function buyUpgrade() {
-            const initData = tg.initData;
-            
-            fetch('https://coin-tap-game.onrender.com/api/upgrade', {
+            fetch(`${API_BASE_URL}/api/upgrade`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'X-Telegram-Init-Data': initData
+                    'X-Telegram-Init-Data': tg.initData
                 }
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Upgrade failed');
+                return res.json();
+            })
             .then(data => {
                 if (data.error) {
                     alert(data.error);
@@ -528,24 +550,35 @@
                 userData.tap_power = data.tap_power;
                 updateUI();
                 alert('Upgrade purchased!');
+            })
+            .catch(error => {
+                console.error('Upgrade error:', error);
+                alert('Failed to purchase upgrade. Please try again.');
             });
         }
         
         // Load leaderboard
         function loadLeaderboard() {
-            fetch('https://coin-tap-game.onrender.com/api/leaderboard')
-            .then(res => res.json())
+            fetch(`${API_BASE_URL}/api/leaderboard`)
+            .then(res => {
+                if (!res.ok) throw new Error('Leaderboard failed');
+                return res.json();
+            })
             .then(data => {
                 leaderboardContainer.innerHTML = '';
                 data.forEach((user, index) => {
                     const item = document.createElement('div');
                     item.className = 'leaderboard-item';
                     item.innerHTML = `
-                        <div>${index + 1}. ${user.username}</div>
+                        <div>${index + 1}. ${user.username || 'Player'}</div>
                         <div>${user.coins.toLocaleString()} coins</div>
                     `;
                     leaderboardContainer.appendChild(item);
                 });
+            })
+            .catch(error => {
+                console.error('Leaderboard error:', error);
+                leaderboardContainer.innerHTML = '<p>Failed to load leaderboard</p>';
             });
         }
         
@@ -556,17 +589,18 @@
             const method = document.getElementById('withdraw-method').value;
             const address = document.getElementById('withdraw-address').value;
             
-            const initData = tg.initData;
-            
-            fetch('https://coin-tap-game.onrender.com/api/withdraw', {
+            fetch(`${API_BASE_URL}/api/withdraw`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'X-Telegram-Init-Data': initData
+                    'X-Telegram-Init-Data': tg.initData
                 },
                 body: JSON.stringify({ method, address })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Withdrawal failed');
+                return res.json();
+            })
             .then(data => {
                 if (data.error) {
                     alert(data.error);
@@ -576,6 +610,11 @@
                 userData.coins = data.coins;
                 updateUI();
                 alert('Withdrawal request submitted! It will be processed within 48 hours.');
+                withdrawForm.reset();
+            })
+            .catch(error => {
+                console.error('Withdrawal error:', error);
+                alert('Withdrawal failed. Please try again.');
             });
         });
         
@@ -601,6 +640,21 @@
                 if (panelId === 'leaderboard-panel') {
                     loadLeaderboard();
                 }
+                if (panelId === 'referral-panel') {
+                    fetch(`${API_BASE_URL}/api/referral`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-Telegram-Init-Data': tg.initData
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.referral_link) {
+                            referralLink.value = data.referral_link;
+                        }
+                    });
+                }
             });
         });
         
@@ -612,7 +666,7 @@
         for (let level = 1; level <= 20; level++) {
             const upgrade = document.createElement('div');
             upgrade.className = 'upgrade-item';
-            const cost = BASE_UPGRADE_COST * (level + 1);
+            const cost = 50 * (level + 1);
             
             upgrade.innerHTML = `
                 <div>
@@ -633,6 +687,32 @@
                 buyUpgrade();
             });
         });
+        
+        // Handle referral link from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const refParam = urlParams.get('ref');
+        if (refParam && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+            // Only apply referral if user is new
+            fetch(`${API_BASE_URL}/api/user/${tg.initDataUnsafe.user.id}`, {
+                headers: { 
+                    'X-Telegram-Init-Data': tg.initData 
+                }
+            })
+            .then(res => res.json())
+            .then(user => {
+                if (!user || user.error) {
+                    // Apply referral bonus
+                    fetch(`${API_BASE_URL}/api/referral/apply`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-Telegram-Init-Data': tg.initData
+                        },
+                        body: JSON.stringify({ referrer_id: refParam })
+                    });
+                }
+            });
+        }
     </script>
 </body>
-</html>
+    </html>
