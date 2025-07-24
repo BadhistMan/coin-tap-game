@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: coin-tap-backend
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: BOT_TOKEN
+        value: ${{TELEGRAM_BOT_TOKEN}}

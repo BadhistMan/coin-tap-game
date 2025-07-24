@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Tap - Telegram Game</title>
+    <style>
+        :root {
+            --primary: #2a9df4;
+            --secondary: #1877f2;
+            --accent: #ffd166;
+            --dark: #1a202c;
+            --light: #f7fafc;
+            --success: #48bb78;
+            --danger: #e53e3e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            margin-bottom: 20px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .coin-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .tap-area {
+            background: rgba(255, 255, 255, 0.1);
+            height: 300px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tap-button {
+            width: 200px;
+            height: 200px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tap-button:active {
+            transform: scale(0.95);
+        }
+        
+        .coin-pop {
+            position: absolute;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent);
+            animation: pop 1s forwards;
+        }
+        
+        @keyframes pop {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-50px); }
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 5px 0;
+            color: var(--accent);
+        }
+        
+        .menu {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 32, 44, 0.95);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            z-index: 100;
+        }
+        
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        .menu-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .panel {
+            background: rgba(26, 32, 44, 0.9);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .panel.active {
+            display: block;
+        }
+        
+        h2 {
+            margin-bottom: 15px;
+            color: var(--accent);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 5px;
+        }
+        
+        .upgrade-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: var(--secondary);
+        }
+        
+        .btn:disabled {
+            background: #718096;
+            cursor: not-allowed;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .withdraw-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        select, input {
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .credit {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="user-info">
+                <div class="avatar" id="user-avatar">U</div>
+                <div>
+                    <div id="username">Player</div>
+                    <div class="coin-display" id="coins">0 coins</div>
+                </div>
+            </div>
+            <div class="power-display">
+                Power: <span id="power">1</span>
+            </div>
+        </header>
+        
+        <div class="tap-area" id="tap-area">
+            <div class="tap-button">TAP</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div>Total Taps</div>
+                <div class="stat-value" id="tap-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div>Referrals</div>
+                <div class="stat-value" id="referral-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div>Tap Power</div>
+                <div class="stat-value" id="power-value">1</div>
+            </div>
+            <div class="stat-card">
+                <div>Next Upgrade</div>
+                <div class="stat-value" id="upgrade-cost">50</div>
+            </div>
+        </div>
+        
+        <div class="panel active" id="home-panel">
+            <button class="btn" id="daily-btn">Claim Daily Reward (1000 coins)</button>
+            <button class="btn" id="withdraw-btn">Withdraw Coins</button>
+        </div>
+        
+        <div class="panel" id="upgrade-panel">
+            <h2>Upgrade Store</h2>
+            <div id="upgrades-container"></div>
+        </div>
+        
+        <div class="panel" id="leaderboard-panel">
+            <h2>Top Players</h2>
+            <div id="leaderboard-container"></div>
+        </div>
+        
+        <div class="panel" id="withdraw-panel">
+            <h2>Withdraw Coins</h2>
+            <div id="withdraw-info">Minimum withdrawal: 50,000 coins</div>
+            <form class="withdraw-form" id="withdraw-form">
+                <select id="withdraw-method" required>
+                    <option value="">Select method</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="usdt">USDT (TRC20)</option>
+                    <option value="telebirr">Telebirr (Ethiopia)</option>
+                    <option value="bank">Ethiopian Bank</option>
+                </select>
+                <input 
+                    type="text" 
+                    id="withdraw-address" 
+                    placeholder="Enter address/email/phone" 
+                    required
+                >
+                <button type="submit" class="btn">Submit Request</button>
+            </form>
+        </div>
+        
+        <div class="panel" id="referral-panel">
+            <h2>Referral Program</h2>
+            <p>Invite friends and get 500 coins for each referral!</p>
+            <div class="referral-link">
+                <input type="text" id="referral-link" readonly>
+                <button class="btn" id="copy-btn">Copy Link</button>
+            </div>
+            <div id="referral-stats">
+                <p>Total referrals: <span id="total-referrals">0</span></p>
+                <p>Earned from referrals: <span id="referral-earnings">0</span> coins</p>
+            </div>
+        </div>
+        
+        <div class="credit">
+            Created by Badhist Man 🇪🇹 | Join @Freetech_1
+        </div>
+    </div>
+    
+    <div class="menu">
+        <div class="menu-item" data-panel="home-panel">
+            <div class="menu-icon">🏠</div>
+            <span>Home</span>
+        </div>
+        <div class="menu-item" data-panel="upgrade-panel">
+            <div class="menu-icon">⚡</div>
+            <span>Upgrade</span>
+        </div>
+        <div class="menu-item" data-panel="leaderboard-panel">
+            <div class="menu-icon">🏆</div>
+            <span>Leaderboard</span>
+        </div>
+        <div class="menu-item" data-panel="withdraw-panel">
+            <div class="menu-icon">💰</div>
+            <span>Withdraw</span>
+        </div>
+        <div class="menu-item" data-panel="referral-panel">
+            <div class="menu-icon">👥</div>
+            <span>Referral</span>
+        </div>
+    </div>
+    
+    <script>
+        // Telegram Web App initialization
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Global state
+        let userData = {
+            coins: 0,
+            tap_power: 1,
+            tap_count: 0,
+            referrals: 0
+        };
+        
+        // DOM elements
+        const coinsDisplay = document.getElementById('coins');
+        const powerDisplay = document.getElementById('power');
+        const tapCountDisplay = document.getElementById('tap-count');
+        const referralCountDisplay = document.getElementById('referral-count');
+        const powerValueDisplay = document.getElementById('power-value');
+        const upgradeCostDisplay = document.getElementById('upgrade-cost');
+        const tapArea = document.getElementById('tap-area');
+        const dailyBtn = document.getElementById('daily-btn');
+        const withdrawBtn = document.getElementById('withdraw-btn');
+        const panels = document.querySelectorAll('.panel');
+        const menuItems = document.querySelectorAll('.menu-item');
+        const usernameDisplay = document.getElementById('username');
+        const userAvatar = document.getElementById('user-avatar');
+        const upgradesContainer = document.getElementById('upgrades-container');
+        const leaderboardContainer = document.getElementById('leaderboard-container');
+        const withdrawForm = document.getElementById('withdraw-form');
+        const referralLink = document.getElementById('referral-link');
+        const copyBtn = document.getElementById('copy-btn');
+        const totalReferrals = document.getElementById('total-referrals');
+        const referralEarnings = document.getElementById('referral-earnings');
+        
+        // Initialize user
+        function initUser() {
+            const initData = tg.initData;
+            
+            // Set Telegram user info
+            const user = tg.initDataUnsafe.user || {};
+            usernameDisplay.textContent = user.first_name || 'Player';
+            userAvatar.textContent = user.first_name ? user.first_name[0] : 'P';
+            
+            // Set up API requests with initData
+            fetch('/api/user/' + user.id, {
+                headers: { 'X-Telegram-Init-Data': initData }
+            })
+            .then(res => res.json())
+            .then(data => {
+                userData = {
+                    ...userData,
+                    ...data,
+                    tap_count: data.tap_count || 0,
+                    referrals: data.referrals || 0
+                };
+                updateUI();
+            });
+        }
+        
+        // Update UI with current state
+        function updateUI() {
+            coinsDisplay.textContent = `${userData.coins.toLocaleString()} coins`;
+            powerDisplay.textContent = userData.tap_power;
+            tapCountDisplay.textContent = userData.tap_count.toLocaleString();
+            referralCountDisplay.textContent = userData.referrals.toLocaleString();
+            powerValueDisplay.textContent = userData.tap_power;
+            upgradeCostDisplay.textContent = (BASE_UPGRADE_COST * (userData.tap_power + 1)).toLocaleString();
+            
+            // Update withdraw button state
+            withdrawBtn.disabled = userData.coins < MIN_WITHDRAW;
+            
+            // Update referral info
+            if (referralLink) {
+                referralLink.value = `${window.location.origin}?ref=${tg.initDataUnsafe.user.id}`;
+            }
+            if (totalReferrals) {
+                totalReferrals.textContent = userData.referrals;
+            }
+        }
+        
+        // Handle tap
+        function handleTap() {
+            const initData = tg.initData;
+            
+            fetch('/api/tap', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': initData
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                // Update state
+                userData.coins = data.coins;
+                userData.tap_count++;
+                
+                // Show coin pop animation
+                const pop = document.createElement('div');
+                pop.className = 'coin-pop';
+                pop.textContent = `+${data.earned}`;
+                pop.style.left = `${Math.random() * 100}%`;
+                tapArea.appendChild(pop);
+                
+                setTimeout(() => {
+                    pop.remove();
+                }, 1000);
+                
+                updateUI();
+            });
+        }
+        
+        // Claim daily reward
+        dailyBtn.addEventListener('click', () => {
+            const initData = tg.initData;
+            
+            fetch('/api/daily-reward', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': initData
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                userData.coins = data.coins;
+                updateUI();
+                alert(`Claimed ${data.reward} coins!`);
+            });
+        });
+        
+        // Buy upgrade
+        function buyUpgrade() {
+            const initData = tg.initData;
+            
+            fetch('/api/upgrade', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': initData
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                userData.coins = data.coins;
+                userData.tap_power = data.tap_power;
+                updateUI();
+                alert('Upgrade purchased!');
+            });
+        }
+        
+        // Load leaderboard
+        function loadLeaderboard() {
+            fetch('/api/leaderboard')
+            .then(res => res.json())
+            .then(data => {
+                leaderboardContainer.innerHTML = '';
+                data.forEach((user, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'leaderboard-item';
+                    item.innerHTML = `
+                        <div>${index + 1}. ${user.username}</div>
+                        <div>${user.coins.toLocaleString()} coins</div>
+                    `;
+                    leaderboardContainer.appendChild(item);
+                });
+            });
+        }
+        
+        // Handle withdrawal
+        withdrawForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const method = document.getElementById('withdraw-method').value;
+            const address = document.getElementById('withdraw-address').value;
+            
+            const initData = tg.initData;
+            
+            fetch('/api/withdraw', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': initData
+                },
+                body: JSON.stringify({ method, address })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                userData.coins = data.coins;
+                updateUI();
+                alert('Withdrawal request submitted! It will be processed within 48 hours.');
+            });
+        });
+        
+        // Copy referral link
+        copyBtn.addEventListener('click', () => {
+            referralLink.select();
+            document.execCommand('copy');
+            alert('Link copied to clipboard!');
+        });
+        
+        // Panel navigation
+        menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const panelId = item.dataset.panel;
+                
+                // Hide all panels
+                panels.forEach(panel => panel.classList.remove('active'));
+                
+                // Show selected panel
+                document.getElementById(panelId).classList.add('active');
+                
+                // Load data for specific panels
+                if (panelId === 'leaderboard-panel') {
+                    loadLeaderboard();
+                }
+            });
+        });
+        
+        // Initialize
+        initUser();
+        tapArea.addEventListener('click', handleTap);
+        
+        // Create upgrade items
+        for (let level = 1; level <= 20; level++) {
+            const upgrade = document.createElement('div');
+            upgrade.className = 'upgrade-item';
+            const cost = BASE_UPGRADE_COST * (level + 1);
+            
+            upgrade.innerHTML = `
+                <div>
+                    <div>Level ${level} → ${level + 1}</div>
+                    <div>+1 coin per tap</div>
+                </div>
+                <button class="btn upgrade-btn" data-cost="${cost}" data-level="${level}">
+                    ${cost.toLocaleString()} coins
+                </button>
+            `;
+            
+            upgradesContainer.appendChild(upgrade);
+        }
+        
+        // Handle upgrade purchases
+        document.querySelectorAll('.upgrade-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                buyUpgrade();
+            });
+        });
+    </script>
+</body>
+</html>
