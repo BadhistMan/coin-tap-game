@@ -6,17 +6,29 @@ import hashlib
 import hmac
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, g, make_response
+from flask_cors import CORS  # Added for CORS support
+from dotenv import load_dotenv  # Added for .env loading
 
+# Initialize Flask app
 app = Flask(__name__)
-app.config.from_pyfile('config.py')
+CORS(app)  # Enable CORS for all routes
+load_dotenv()  # Load environment variables from .env file
 
-DATABASE = os.path.join(app.instance_path, 'game.db')
+# Configuration
 SECRET_KEY = os.environ.get('SECRET_KEY')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 MIN_WITHDRAW = 50000
 DAILY_REWARD = 1000
 BASE_UPGRADE_COST = 50
 REFERRAL_BONUS = 500
+
+# Get absolute path for database
+def get_db_path():
+    instance_path = app.instance_path
+    os.makedirs(instance_path, exist_ok=True)
+    return os.path.join(instance_path, 'game.db')
+
+DATABASE = get_db_path()
 
 def get_db():
     if 'db' not in g:
@@ -90,6 +102,9 @@ def init_db():
 
 def validate_init_data(init_data):
     try:
+        if not BOT_TOKEN:
+            return False
+            
         data_dict = {}
         for item in init_data.split('&'):
             key, value = item.split('=')
@@ -330,6 +345,5 @@ def close_db(error):
         g.db.close()
 
 if __name__ == '__main__':
-    os.makedirs(app.instance_path, exist_ok=True)
     init_db()
     app.run(host='0.0.0.0', port=5000)
