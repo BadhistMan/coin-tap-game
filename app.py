@@ -24,6 +24,7 @@ MIN_WITHDRAW = 50000
 DAILY_REWARD = 1000
 BASE_UPGRADE_COST = 50
 REFERRAL_BONUS = 500
+MAX_TAPS_PER_SECOND = 10
 
 # Get absolute path for database
 def get_db_path():
@@ -62,7 +63,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS taps (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
-                timestamp INTEGER,
+                timestamp REAL,
                 FOREIGN KEY(user_id) REFERENCES users(telegram_id)
             )
         ''')
@@ -150,6 +151,12 @@ def get_user_data(telegram_id):
 def create_user(telegram_id, username, referrer_id=None):
     try:
         db = get_db()
+        
+        # Check if user already exists
+        existing_user = db.execute('SELECT * FROM users WHERE telegram_id = ?', (telegram_id,)).fetchone()
+        if existing_user:
+            return dict(existing_user)
+        
         referral_code = hashlib.md5(f"{telegram_id}{time.time()}".encode()).hexdigest()[:8]
         
         user_data = {
@@ -174,7 +181,7 @@ def create_user(telegram_id, username, referrer_id=None):
             ''', (referrer_id, telegram_id, int(time.time())))
             db.commit()
         
-        return user_data
+        return get_user_data(telegram_id)
     except Exception as e:
         app.logger.error(f"Create user error: {str(e)}")
         return None
@@ -227,17 +234,17 @@ def tap():
     try:
         user_id = g.user['telegram_id']
         db = get_db()
-        
-        # Anti-cheat: max 10 taps/second
-        last_tap = db.execute('''
-            SELECT timestamp FROM taps 
-            WHERE user_id = ? 
-            ORDER BY timestamp DESC LIMIT 1
-        ''', (user_id,)).fetchone()
-        
         current_time = time.time()
-        if last_tap and (current_time - last_tap['timestamp']) < 0.1:
-            return jsonify({'error': 'Tap too fast'}), 429
+        
+        # Anti-cheat: limit taps per second
+        last_taps = db.execute('''
+            SELECT timestamp FROM taps 
+            WHERE user_id = ? AND timestamp > ?
+            ORDER BY timestamp DESC
+        ''', (user_id, current_time - 1)).fetchall()
+        
+        if len(last_taps) >= MAX_TAPS_PER_SECOND:
+            return jsonify({'error': 'Tap limit exceeded'}), 429
         
         # Add tap record
         db.execute('INSERT INTO taps (user_id, timestamp) VALUES (?, ?)', (user_id, current_time))
@@ -252,15 +259,33 @@ def tap():
         
         return jsonify({
             'coins': updated_user['coins'],
-            'earned': coins_earned
+            'earned': coins_earned,
+            'tap_count': len(last_taps) + 1
         })
     except Exception as e:
         app.logger.error(f"Tap error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/user/<telegram_id>')
-def get_user(telegram_id):
+@app.route('/api/user/<telegram_id>', methods=['GET', 'POST'])
+def user_endpoint(telegram_id):
     try:
+        # Validate telegram_id is a number
+        if not telegram_id.isdigit():
+            return jsonify({'error': 'Invalid user ID'}), 400
+
+        telegram_id = int(telegram_id)
+        
+        if request.method == 'POST':
+            # Create user
+            data = request.get_json()
+            username = data.get('username', 'Player')
+            referrer_id = request.args.get('ref')
+            user = create_user(telegram_id, username, referrer_id)
+            if user:
+                return jsonify(user)
+            return jsonify({'error': 'Failed to create user'}), 500
+        
+        # GET request
         db = get_db()
         user = db.execute('SELECT * FROM users WHERE telegram_id = ?', (telegram_id,)).fetchone()
         if user:
@@ -282,7 +307,7 @@ def get_user(telegram_id):
             return jsonify(user_data)
         return jsonify({'error': 'User not found'}), 404
     except Exception as e:
-        app.logger.error(f"Get user error: {str(e)}")
+        app.logger.error(f"User endpoint error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/upgrade', methods=['POST'])
@@ -320,7 +345,8 @@ def upgrade():
         
         return jsonify({
             'coins': updated_user['coins'],
-            'tap_power': updated_user['tap_power']
+            'tap_power': updated_user['tap_power'],
+            'upgrade_cost': BASE_UPGRADE_COST * (updated_user['tap_power'] + 1)
         })
     except Exception as e:
         app.logger.error(f"Upgrade error: {str(e)}")
@@ -402,7 +428,7 @@ def withdraw():
         db.execute('''
             INSERT INTO withdrawals (user_id, method, address, status, requested_at)
             VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, method, address, 'pending', time.time()))
+        ''', (user_id, method, address, 'pending', int(time.time())))
         
         # Deduct coins
         db.execute('UPDATE users SET coins = coins - ? WHERE telegram_id = ?', (MIN_WITHDRAW, user_id))
@@ -460,9 +486,13 @@ def apply_referral():
         ''', (referrer_id, user_id, int(time.time())))
         db.commit()
         
+        # Get updated user data
+        updated_user = db.execute('SELECT coins FROM users WHERE telegram_id = ?', (user_id,)).fetchone()
+        
         return jsonify({
             'message': 'Referral applied successfully',
-            'bonus': REFERRAL_BONUS
+            'bonus': REFERRAL_BONUS,
+            'coins': updated_user['coins']
         })
     except Exception as e:
         app.logger.error(f"Apply referral error: {str(e)}")
