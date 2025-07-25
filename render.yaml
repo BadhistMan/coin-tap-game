@@ -1,11 +1,13 @@
 services:
   - type: web
-    name: coin-tap-backend
+    name: coin-tap-game
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app"
+    buildCommand: "pip install -r requirements.txt && python database.py"
+    startCommand: "gunicorn wsgi:app"
     envVars:
-      - key: SECRET_KEY
-        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.10.6
       - key: BOT_TOKEN
-        value: ${{TELEGRAM_BOT_TOKEN}}
+        fromSecret: BOT_TOKEN # Create this secret in your Render environment```
+
+#### `backend/.env.example`
