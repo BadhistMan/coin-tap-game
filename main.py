@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from database import get_db_connection, create_tables
 
 # --- CONFIGURATION ---
-BOT_TOKEN = os.environ.get('BOT_TOKEN', 'YOUR_TELEGRAM_BOT_TOKEN') # From @BotFather
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8246236846:AAHW_hPy5wALCrnjip1iX_Gr-MnBYZneTko') # From @BotFather
 DAILY_REWARD_AMOUNT = 500
 MIN_WITHDRAWAL_BALANCE = 50000
 REFERRAL_BONUS = 1000
